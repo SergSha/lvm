@@ -376,3 +376,78 @@ done
 
 <h4># Выделить том под /var в зеркало</h4>
 
+<p>На свободных дисках создаем зеркало:</p>
+
+<pre>[root@lvm boot]# pvcreate /dev/sdd /dev/sde
+  Physical volume "/dev/sdd" successfully created.
+  Physical volume "/dev/sde" successfully created.
+[root@lvm boot]#</pre>
+
+<pre>[root@lvm boot]# vgcreate vg_var /dev/sdd /dev/sde
+  Volume group "vg_var" successfully created
+[root@lvm boot]#</pre>
+
+<pre>[root@lvm boot]# lvcreate -L 950M -m1 -n lv_var vg_var
+  Rounding up size to full physical extent 952.00 MiB
+  Logical volume "lv_var" created.
+[root@lvm boot]#</pre>
+
+<p>Создаем на нем ФС и перемещаем туда /var:</p>
+
+<pre>[root@lvm boot]# mkfs.ext4 /dev/vg_var/lv_var
+mke2fs 1.42.9 (28-Dec-2013)
+Filesystem label=
+OS type: Linux
+Block size=4096 (log=2)
+Fragment size=4096 (log=2)
+Stride=0 blocks, Stripe width=0 blocks
+60928 inodes, 243712 blocks
+12185 blocks (5.00%) reserved for the super user
+First data block=0
+Maximum filesystem blocks=249561088
+8 block groups
+32768 blocks per group, 32768 fragments per group
+7616 inodes per group
+Superblock backups stored on blocks: 
+	32768, 98304, 163840, 229376
+
+Allocating group tables: done                            
+Writing inode tables: done                            
+Creating journal (4096 blocks): done
+Writing superblocks and filesystem accounting information: done
+
+[root@lvm boot]#</pre>
+
+<pre>[root@lvm boot]# mount /dev/vg_var/lv_var /mnt
+[root@lvm boot]#</pre>
+
+<p>На всякий случай сохраняем содержимое старого var (или же можно его просто удалить):</p>
+
+<pre>[root@lvm boot]# mkdir /tmp/oldvar && mv /var/* /tmp/oldvar/
+[root@lvm boot]#</pre>
+
+<p>Теперь монтируем новый var в каталог /var:</p>
+
+<pre>[root@lvm boot]# umount /mnt
+[root@lvm boot]#</pre>
+
+<pre>[root@lvm boot]# mount /dev/vg_var/lv_var /var
+[root@lvm boot]#</pre>
+
+<p>Правим fstab для автоматического монтирования /var:</p>
+
+<pre>[root@lvm boot]# echo "$(blkid | grep var: | awk '{print $2}') /var ext4 defaults 0 0" >> /etc/fstab 
+[root@lvm boot]#</pre>
+
+<p>Теперь можно перезагружаться в новый (уменьшенный root):</p>
+
+<pre>[root@lvm boot]# exit
+exit
+[root@lvm ~]# shutdown -r now
+Connection to 127.0.0.1 closed by remote host.
+Connection to 127.0.0.1 closed.
+[user@localhost lvm]$</pre>
+
+<p>Заходим в систему:</p>
+
+<pre></pre>
