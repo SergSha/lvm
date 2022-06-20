@@ -130,7 +130,7 @@ Vagrant.configure("2") do |config|
 <pre>[user@localhost lvm]$ vagrant ssh
 [vagrant@lvm ~]$</pre>
 
-<p>Заходим под правми root:</p>
+<p>Заходим под правами root:</p>
 
 <pre>[vagrant@lvm ~]$ sudo -i
 [root@lvm ~]#</pre>
@@ -292,3 +292,87 @@ Last login: Mon Jun 20 18:24:22 2022 from 10.0.2.2
 
 <pre>[vagrant@lvm ~]$ sudo -i
 [root@lvm ~]#</pre>
+
+<p>Убеждаемся, что система загрузилась с новым root:</p>
+
+<pre>[root@lvm ~]# lsblk
+NAME                    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda                       8:0    0   40G  0 disk 
+├─sda1                    8:1    0    1M  0 part 
+├─sda2                    8:2    0    1G  0 part /boot
+└─sda3                    8:3    0   39G  0 part 
+  ├─VolGroup00-LogVol01 253:1    0  1.5G  0 lvm  [SWAP]
+  └─VolGroup00-LogVol00 253:2    0 37.5G  0 lvm  
+sdb                       8:16   0   10G  0 disk 
+└─vg_root-lv_root       253:0    0   10G  0 lvm  /
+sdc                       8:32   0    2G  0 disk 
+sdd                       8:48   0    1G  0 disk 
+sde                       8:64   0    1G  0 disk 
+[root@lvm ~]#</pre>
+
+<p>Видим, что том / смонтирован к vg_root-lv_root на sdb.</p>
+
+<p>Теперь нам нужно изменить размер старой VG и вернуть на него рут. Для этого удаляем старый LV размеров в 40G и создаем новый на 8G:</p>
+
+<pre>[root@lvm ~]# lvremove -f /dev/VolGroup00/LogVol00
+  Logical volume "LogVol00" successfully removed
+[root@lvm ~]#</pre>
+
+<pre>[root@lvm ~]# lvcreate -n VolGroup00/LogVol00 -L 8G /dev/VolGroup00
+WARNING: xfs signature detected on /dev/VolGroup00/LogVol00 at offset 0. Wipe it? [y/n]: y
+  Wiping xfs signature on /dev/VolGroup00/LogVol00.
+  Logical volume "LogVol00" created.
+[root@lvm ~]#</pre>
+
+<p>Создадим на нем файловую систему и смонтируем его, чтобы перенести обратно туда данные:</p>
+
+<pre>[root@lvm ~]# mkfs.xfs /dev/VolGroup00/LogVol00
+meta-data=/dev/VolGroup00/LogVol00 isize=512    agcount=4, agsize=524288 blks
+         =                       sectsz=512   attr=2, projid32bit=1
+         =                       crc=1        finobt=0, sparse=0
+data     =                       bsize=4096   blocks=2097152, imaxpct=25
+         =                       sunit=0      swidth=0 blks
+naming   =version 2              bsize=4096   ascii-ci=0 ftype=1
+log      =internal log           bsize=4096   blocks=2560, version=2
+         =                       sectsz=512   sunit=0 blks, lazy-count=1
+realtime =none                   extsz=4096   blocks=0, rtextents=0
+[root@lvm ~]#</pre>
+
+<pre>[root@lvm ~]# mount /dev/VolGroup00/LogVol00 /mnt
+[root@lvm ~]#</pre>
+
+<pre>[root@lvm ~]# xfsdump -J - /dev/vg_root/lv_root | xfsrestore -J - /mnt
+...
+xfsrestore: restore complete: 13 seconds elapsed
+xfsrestore: Restore Status: SUCCESS
+[root@lvm ~]#</pre>
+
+<p>Так же как в первый раз переконфигурируем grub, за исключением правки /etc/grub2/grub.cfg:</p>
+
+<pre>[root@lvm ~]# for i in /proc/ /sys/ /dev/ /run/ /boot/; do mount --bind $i /mnt/$i; done
+[root@lvm ~]#</pre>
+
+<pre>[root@lvm ~]# chroot /mnt/
+[root@lvm /]#</pre>
+
+<pre>[root@lvm /]# grub2-mkconfig -o /boot/grub2/grub.cfg 
+Generating grub configuration file ...
+Found linux image: /boot/vmlinuz-3.10.0-862.2.3.el7.x86_64
+Found initrd image: /boot/initramfs-3.10.0-862.2.3.el7.x86_64.img
+done
+[root@lvm /]#</pre>
+
+<pre>[root@lvm /]# cd /boot/
+[root@lvm boot]#</pre>
+
+<pre>[root@lvm boot]# for i in $(ls initramfs-*.img); do mkinitrd -f -v $i $(echo $i | sed "s/initramfs-//g; s/.img//g"); done
+...
+*** Creating image file ***
+*** Creating image file done ***
+*** Creating initramfs image file '/boot/initramfs-3.10.0-862.2.3.el7.x86_64.img' done ***
+[root@lvm boot]#</pre>
+
+<p>Пока не перезагружаемся и не выходим из под chroot - мы можем заодно перенести /var.</p>
+
+<h4># Выделить том под /var в зеркало</h4>
+
