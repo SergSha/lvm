@@ -437,7 +437,7 @@ Writing superblocks and filesystem accounting information: done
 <pre>[root@lvm boot]# mount /dev/vg_var/lv_var /var
 [root@lvm boot]#</pre>
 
-<p>Правим fstab для автоматического монтирования /var:</p>
+<p>Правим fstab для автоматического монтирования /var: </p>
 
 <pre>[root@lvm boot]# echo "$(blkid | grep var: | awk '{print $2}') /var ext4 defaults 0 0" >> /etc/fstab 
 [root@lvm boot]#</pre>
