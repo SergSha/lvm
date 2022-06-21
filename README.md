@@ -437,7 +437,7 @@ Writing superblocks and filesystem accounting information: done
 <pre>[root@lvm boot]# mount /dev/vg_var/lv_var /var
 [root@lvm boot]#</pre>
 
-<p>Правим fstab для автоматического монтирования /var: </p>
+<p>Правим fstab для автоматического монтирования /var:</p>
 
 <pre>[root@lvm boot]# echo "$(blkid | grep var: | awk '{print $2}') /var ext4 defaults 0 0" >> /etc/fstab 
 [root@lvm boot]#</pre>
@@ -527,7 +527,7 @@ realtime =none                   extsz=4096   blocks=0, rtextents=0
 [root@lvm ~]# mount /dev/VolGroup00/LogVol_Home /home/
 [root@lvm ~]#</pre>
 
-<p>Правим fstab для автоматического монтирования /home:/p>
+<p>Правим fstab для автоматического монтирования /home:</p>
 
 <pre>[root@lvm ~]# echo "$(blkid | grep Home | awk '{print $2}') /home xfs defaults 0 0" >> /etc/fstab
 [root@lvm ~]#</pre>
