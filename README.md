@@ -33,7 +33,7 @@
 
 <p>Создадим файл Vagrantfile:</p>
 
-<pre>[user@localhost disksystem]$ vi ./Vagrantfile</pre>
+<pre>[user@localhost lvm]$ vi ./Vagrantfile</pre>
 
 <p>Заполним следующим содержимым:</p>
 
