@@ -421,6 +421,9 @@ Writing superblocks and filesystem accounting information: done
 <pre>[root@lvm boot]# mount /dev/vg_var/lv_var /mnt
 [root@lvm boot]#</pre>
 
+<pre>[root@localhost boot]# cp -aR /var/* /mnt/
+[root@lvm boot]#</pre>
+
 <p>На всякий случай сохраняем содержимое старого var (или же можно его просто удалить):</p>
 
 <pre>[root@lvm boot]# mkdir /tmp/oldvar && mv /var/* /tmp/oldvar/
@@ -450,4 +453,55 @@ Connection to 127.0.0.1 closed.
 
 <p>Заходим в систему:</p>
 
-<pre></pre>
+<pre>[user@localhost lvm]$ vagrant ssh
+Last login: Tue Jun 21 07:24:57 2022 from 10.0.2.2
+[vagrant@lvm ~]$</pre>
+
+<p>и заходим под правми root:</p>
+
+<pre>[vagrant@lvm ~]$ sudo -i
+[root@lvm ~]#</pre>
+
+<p>Система успещно перезагрузилась, теперь можно удалять временную Volume Croup:</p>
+
+<pre>[root@lvm ~]# lvremove -f /dev/vg_root/lv_root
+  Logical volume "lv_root" successfully removed
+[root@lvm ~]#</pre>
+
+<pre>[root@lvm ~]# vgremove /dev/vg_root
+  Volume group "vg_root" successfully removed
+[root@lvm ~]#</pre>
+
+<pre>[root@lvm ~]# pvremove /dev/sdb
+  Labels on physical volume "/dev/sdb" successfully wiped.
+[root@lvm ~]#</pre>
+
+<pre>[root@lvm ~]# lsblk
+NAME                     MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda                        8:0    0   40G  0 disk
+├─sda1                     8:1    0    1M  0 part
+├─sda2                     8:2    0    1G  0 part /boot
+└─sda3                     8:3    0   39G  0 part
+  ├─VolGroup00-LogVol00  253:0    0    8G  0 lvm  /
+  └─VolGroup00-LogVol01  253:1    0  1.5G  0 lvm  [SWAP]
+sdb                        8:16   0   10G  0 disk
+sdc                        8:32   0    2G  0 disk
+sdd                        8:48   0    1G  0 disk
+├─vg_var-lv_var_rmeta_0  253:3    0    4M  0 lvm
+│ └─vg_var-lv_var        253:7    0  952M  0 lvm  /var
+└─vg_var-lv_var_rimage_0 253:4    0  952M  0 lvm
+  └─vg_var-lv_var        253:7    0  952M  0 lvm  /var
+sde                        8:64   0    1G  0 disk
+├─vg_var-lv_var_rmeta_1  253:5    0    4M  0 lvm
+│ └─vg_var-lv_var        253:7    0  952M  0 lvm  /var
+└─vg_var-lv_var_rimage_1 253:6    0  952M  0 lvm
+  └─vg_var-lv_var        253:7    0  952M  0 lvm  /var
+[root@lvm ~]#</pre>
+
+<p>Как видим, размер тома / уменьшен до 8 ГБ, и том /var размещен на дисках sdd и sde в режме mirror</p>
+
+<h4># Выделить том под /home</h4>
+
+<p>Выделяем том под /home по тому же принципу что делали для /var:</p>
+
+
